@@ -18,6 +18,8 @@ shinyServer(
         observers <- list()
         # Record data source changes
         session$bamHitCount <- session$linkHitCount <- 0
+        # Record displayed messages
+        session$messages <- NULL
         
         # Set up response to clear uploaded file buttons
         output$bam_1 <- renderUI({
@@ -70,41 +72,87 @@ shinyServer(
             input$go_link
             bam <- input$go_bam
             link <- input$go_link
-            if (bam==0 && link==0) {
-                output$messages <- renderText({
+            if (bam==0 && link==0) { 
+                session$messages <- c(session$messages,
                     paste("What a nice shiny day on the hill! ",
-                        "Let's analyze some data!")
-                })
+                        "Let's analyze some data!"))
             }
             else {
                 if (bam > session$bamHitCount) {
                     session$bamHitCount <- session$bamHitCount + 1
-                    output$messages <- renderText({
-                        isolate(
-                            if (is.null(input$bam_1$datapath)
-                                && is.null(input$bam_2$datapath)
-                                && is.null(input$bam_3$datapath))
-                                paste("No input BAM files were provided")
+                    isolate({
+                        bams.present <- logical(3)
+                        bam.paths <- bam.names <- rep(NA,3)
+                        if (is.null(input$bam_1$datapath)
+                            && is.null(input$bam_2$datapath)
+                            && is.null(input$bam_3$datapath)) {
+                            if (bam==1)
+                                session$messages <-
+                                    "No input BAM files were provided"
                             else
-                                paste("Something was provided")
-                        )
+                                session$messages <- c(session$messages,
+                                    "No input BAM files were provided")
+                        }
+                        else {
+                            if (!is.null(input$bam_1$datapath)) {
+                                bams.present[1] <- TRUE
+                                bam.paths[1] <- input$bam_1$datapath
+                                bam.names[1] <- input$bam_1$name
+                            }
+                            if (!is.null(input$bam_2$datapath)) {
+                                bams.present[2] <- TRUE
+                                bam.paths[2] <- input$bam_2$datapath
+                                bam.names[2] <- input$bam_2$name
+                            }
+                            if (!is.null(input$bam_3$datapath)) {
+                                bams.present[3] <- TRUE
+                                bam.paths[3] <- input$bam_3$datapath
+                                bam.names[3] <- input$bam_3$name
+                            }
+                            
+                            reads <- coverage <- vector("list",
+                                length(bam.paths))
+                            names(reads) <- names(coverage) <- bam.names
+                            for (n in names(reads)) {
+                                paste("Reading total reads for ",n,"...")
+                                reads[[n]] <- as(readGAlignments(file=input[n]),"GRanges")
+                                disp("Calculating coverage for ",n,"...")
+                                coverage[[n]] <- coverage(reads[[n]])
+                            }
+                                
+                            session$messages <- c(session$messages,
+                                "Something was provided")
+                        }
+                            
                     })
                 }
                 if (link > session$linkHitCount) {
                     session$linkHitCount <- session$linkHitCount + 1
-                    output$messages <- renderText({
-                        isolate(
-                            if (input$link_1=="" && input$link_2==""
-                                && input$link_3=="")
-                                paste("No links to indexed BAM files were provided")
+                    isolate(
+                        if (input$link_1=="" && input$link_2==""
+                            && input$link_3=="") {
+                            if (link==1)
+                                session$messages <- 
+                                    "No links to indexed BAM files were provided"
                             else
-                                paste("Something was provided")
-                        )
-                    })
+                                session$messages <- c(session$messages,
+                                    "No links to indexed BAM files were provided")
+                        }
+                        else
+                            session$messages <- c(session$messages,
+                                "Something was provided")
+                    )
                 }
             }
+            
+            output$messages <- renderUI({
+                tags$div(
+                    isolate(
+                        HTML(paste(session$messages,collapse="<br/>"))
+                    )
+                )
+            })
         })
-        
         
         # Fill in the spot we created for a plot
         output$hilbert <- renderPlot({
@@ -112,30 +160,22 @@ shinyServer(
             plot(1:100,1:100,xaxt="n",yaxt="n",pch=20,col="white",
                 xlab="",ylab="")
             text(50,50,"The image will be displayed here",cex=5,font=2)
+            
             output$coords <- renderText({
                 "Chromosomal coordinates will be displayed here"
             })
-            output$browser <- renderUI({
-                tags$div(
-                    style=paste(
-                        "background-color: #ffcc82;",
-                        "margin-top: 5px;",
-                        "margin-bottom: 10px;",
-                        "border-style: solid;",
-                        "border-width: 1px;",
-                        "border-color: #e68701;",
-                        "padding: 10px;",
-                        "border-radius: 5px;"
-                    ),
-                    "Associated UCSC Genome Browser session",
-                    tags$br(),
-                    tags$a(
-                        href="http://genome.ucsc.edu",
-                        target="_blank",
-                        "http://genome.ucsc.edu"
-                    )
+        })
+        
+        output$browser <- renderUI({
+            tags$div(
+                "Associated UCSC Genome Browser session",
+                tags$br(),
+                tags$a(
+                    href="http://genome.ucsc.edu",
+                    target="_blank",
+                    "http://genome.ucsc.edu"
                 )
-            })
+            )
         })
         
         # When the client ends the session, suspend the observers

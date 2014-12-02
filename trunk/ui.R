@@ -7,7 +7,31 @@ shinyUI(
                 type="text/javascript",
                 src="jscolor/jscolor.js"
             ),
-            tags$style("#messages{color: #e50000;}")
+            tags$style(
+                paste("#messages{color: #e50000;",
+                    "background-color: #f5bca9;",
+                    "font-family: \"Courier New\", Courier, monospace;",
+                    "font-size: 0.9em;",
+                    "margin-top: 5px;",
+                    "margin-bottom: 10px;",
+                    "border-style: solid;",
+                    "border-width: 1px;",
+                    "border-color: #e68701;",
+                    "padding: 10px;",
+                    "border-radius: 5px;",
+                    "height:300px;",
+                    "overflow: auto;}")
+            ),
+            tags$style(
+                paste("#browser{background-color: #ffcc82;",
+                    "margin-top: 5px;",
+                    "margin-bottom: 10px;",
+                    "border-style: solid;",
+                    "border-width: 1px;",
+                    "border-color: #f78181;",
+                    "padding: 10px;",
+                    "border-radius: 5px;}")
+            )
         ),
         titlePanel("ShinyHil"),
         fluidRow(
@@ -49,7 +73,6 @@ shinyUI(
                         title="Link",
                         fluidRow(
                             column(1,h6("1st")),
-                            #column(7,htmlOutput("link_1")),
                             column(7,textInput(
                                 inputId="link_1",label=""
                             )),
@@ -59,7 +82,6 @@ shinyUI(
                         ),
                         fluidRow(
                             column(1,h6("2nd")),
-                            #column(7,htmlOutput("link_2")),
                             column(7,textInput(
                                 inputId="link_2",label=""
                             )),
@@ -69,7 +91,6 @@ shinyUI(
                         ),
                         fluidRow(
                             column(1,h6("3rd")),
-                            #column(7,htmlOutput("link_3")),
                             column(7,textInput(
                                 inputId="link_3",label=""
                             )),
@@ -161,7 +182,7 @@ shinyUI(
             plotOutput("hilbert"),
             verbatimTextOutput("coords"),
             htmlOutput("browser"),
-            verbatimTextOutput("messages")
+            htmlOutput("messages")
         )
     )
 ))
